@@ -6,28 +6,15 @@ const client = new Anthropic({
 });
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
+    const {
+      nombreCampana, producto, presupuestodiario, diasActiva,
+      impresiones, alcance, ctr, cpc, cpp, roas, compras,
+      visitasTienda, agregadosCarrito, inicioPago, gastoTotal, objetivo,
+    } = body;
 
-  const {
-    nombreCampana,
-    producto,
-    presupuestodiario,
-    diasActiva,
-    impresiones,
-    alcance,
-    ctr,
-    cpc,
-    cpp,
-    roas,
-    compras,
-    visitasTienda,
-    agregadosCarrito,
-    inicioPago,
-    gastoTotal,
-    objetivo,
-  } = body;
-
-  const prompt = `Eres un experto en Meta Ads con más de 10 años de experiencia optimizando campañas de ecommerce para marcas de productos físicos en Latinoamérica. Tu trabajo es analizar métricas reales y dar un diagnóstico claro y un plan de acción priorizado.
+    const prompt = `Eres un experto en Meta Ads con más de 10 años de experiencia optimizando campañas de ecommerce para marcas de productos físicos en Latinoamérica. Tu trabajo es analizar métricas reales y dar un diagnóstico claro y un plan de acción priorizado.
 
 DATOS DE LA CAMPAÑA:
 - Campaña: ${nombreCampana}
@@ -80,14 +67,18 @@ Lista las acciones a tomar en orden de prioridad. Para cada una indica:
 ## 📈 PROYECCIÓN
 Si se implementan los cambios sugeridos, ¿qué ROAS es alcanzable en los próximos 14 días? Sé realista y explica por qué. No hagas preguntas al final del reporte. Termina con la proyección.`;
 
-  const message = await client.messages.create({
-    model: "claude-opus-4-5",
-    max_tokens: 4000,
-    messages: [{ role: "user", content: prompt }],
-  });
+    const message = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 4000,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  const content = message.content[0];
-  const text = content.type === "text" ? content.text : "";
+    const content = message.content[0];
+    const text = content.type === "text" ? content.text : "";
+    return NextResponse.json({ resultado: text });
 
-  return NextResponse.json({ resultado: text });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json({ resultado: "Error al analizar. Intenta de nuevo." }, { status: 500 });
+  }
 }
