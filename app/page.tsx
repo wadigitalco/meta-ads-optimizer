@@ -3,6 +3,30 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+const PAISES = [
+  { codigo: "+57", nombre: "🇨🇴 Colombia" },
+  { codigo: "+1", nombre: "🇺🇸 Estados Unidos" },
+  { codigo: "+52", nombre: "🇲🇽 México" },
+  { codigo: "+54", nombre: "🇦🇷 Argentina" },
+  { codigo: "+56", nombre: "🇨🇱 Chile" },
+  { codigo: "+51", nombre: "🇵🇪 Perú" },
+  { codigo: "+58", nombre: "🇻🇪 Venezuela" },
+  { codigo: "+593", nombre: "🇪🇨 Ecuador" },
+  { codigo: "+502", nombre: "🇬🇹 Guatemala" },
+  { codigo: "+503", nombre: "🇸🇻 El Salvador" },
+  { codigo: "+504", nombre: "🇭🇳 Honduras" },
+  { codigo: "+505", nombre: "🇳🇮 Nicaragua" },
+  { codigo: "+506", nombre: "🇨🇷 Costa Rica" },
+  { codigo: "+507", nombre: "🇵🇦 Panamá" },
+  { codigo: "+53", nombre: "🇨🇺 Cuba" },
+  { codigo: "+1-809", nombre: "🇩🇴 Rep. Dominicana" },
+  { codigo: "+595", nombre: "🇵🇾 Paraguay" },
+  { codigo: "+598", nombre: "🇺🇾 Uruguay" },
+  { codigo: "+591", nombre: "🇧🇴 Bolivia" },
+  { codigo: "+34", nombre: "🇪🇸 España" },
+  { codigo: "+55", nombre: "🇧🇷 Brasil" },
+];
+
 const camposMetricas = [
   { key: "nombreCampana", label: "Nombre de la campaña", placeholder: "Ej: Campaña Pañales Mayo" },
   { key: "producto", label: "Producto principal", placeholder: "Ej: Serum facial hidratante" },
@@ -22,10 +46,37 @@ const camposMetricas = [
   { key: "inicioPago", label: "Inicio de pago", placeholder: "Ej: 15" },
 ];
 
+const MAKE_WEBHOOK = "https://hook.us2.make.com/wxz4k2xdge2yxjvc1gogd9gm1ih975bz";
+
 export default function Home() {
+  const [step, setStep] = useState(1);
+  const [lead, setLead] = useState({ nombre: "", email: "", whatsapp: "" });
+  const [codigoPais, setCodigoPais] = useState("+57");
+  const [enviando, setEnviando] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [resultado, setResultado] = useState("");
   const [cargando, setCargando] = useState(false);
+
+  const handleLead = async () => {
+    if (!lead.nombre || !lead.email || !lead.whatsapp) return;
+    setEnviando(true);
+    try {
+      await fetch(MAKE_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: lead.nombre,
+          email: lead.email,
+          whatsapp: `${codigoPais} ${lead.whatsapp}`,
+        }),
+      });
+    } catch (e) {
+      console.log("Webhook error:", e);
+    } finally {
+      setEnviando(false);
+      setStep(2);
+    }
+  };
 
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -49,6 +100,9 @@ export default function Home() {
     }
   };
 
+  const labelStyle = { color: "#aaa", fontSize: "12px", display: "block", marginBottom: "6px" };
+  const inputStyle = { width: "100%", background: "#1e1e1e", border: "1px solid #333", borderRadius: "8px", padding: "10px 12px", color: "#fff", fontSize: "14px", boxSizing: "border-box" as const };
+
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh", padding: "40px 20px", fontFamily: "sans-serif" }}>
       <style>{`
@@ -70,47 +124,115 @@ export default function Home() {
         <div style={{ marginBottom: "40px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
             <img src="/logo.png" alt="WA Digital" style={{ width: "48px", height: "48px", borderRadius: "8px", objectFit: "cover" }} />
-            <span style={{ color: "#888", fontSize: "13px" }}>Funnel Day by WA Digital</span>
+            <span style={{ color: "#888", fontSize: "13px" }}>by WA Digital</span>
           </div>
-          <h1 style={{ color: "#fff", fontSize: "28px", fontWeight: "bold", margin: "0 0 8px 0" }}>Optimizador de Campañas Meta Ads</h1>
+          <h1 style={{ color: "#fff", fontSize: "28px", fontWeight: "bold", margin: "0 0 8px 0" }}>Meta Ads Optimizer</h1>
           <p style={{ color: "#888", fontSize: "15px", margin: 0 }}>Ingresa las métricas del Ads Manager y recibe un diagnóstico completo con plan de acción priorizado.</p>
         </div>
 
-        {/* Formulario */}
-        <div style={{ background: "#141414", borderRadius: "16px", padding: "32px", marginBottom: "24px", border: "1px solid #222" }}>
-          <h2 style={{ color: "#FF0164", fontSize: "16px", fontWeight: "bold", marginTop: 0, marginBottom: "24px" }}>📋 Datos de la campaña</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            {camposMetricas.map((campo) => (
-              <div key={campo.key}>
-                <label style={{ color: "#aaa", fontSize: "12px", display: "block", marginBottom: "6px" }}>{campo.label}</label>
-                <input
-                  type="text"
-                  placeholder={campo.placeholder}
-                  value={form[campo.key] || ""}
-                  onChange={(e) => handleChange(campo.key, e.target.value)}
-                  style={{ width: "100%", background: "#1e1e1e", border: "1px solid #333", borderRadius: "8px", padding: "10px 12px", color: "#fff", fontSize: "14px", boxSizing: "border-box" }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={handleAnalizar}
-            disabled={cargando}
-            style={{ marginTop: "28px", width: "100%", background: cargando ? "#555" : "#FF0164", color: "#fff", border: "none", borderRadius: "10px", padding: "14px", fontSize: "16px", fontWeight: "bold", cursor: cargando ? "not-allowed" : "pointer" }}
-          >
-            {cargando ? "Analizando campaña..." : "🔍 Analizar campaña"}
-          </button>
-        </div>
-
-        {/* Resultado */}
-        {resultado && (
+        {/* ─── PASO 1: Formulario de datos ─── */}
+        {step === 1 && (
           <div style={{ background: "#141414", borderRadius: "16px", padding: "32px", border: "1px solid #222" }}>
-            <h2 style={{ color: "#FF0164", fontSize: "16px", fontWeight: "bold", marginTop: 0, marginBottom: "20px" }}>📊 Diagnóstico y Plan de Optimización</h2>
-            <div className="md-body">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultado}</ReactMarkdown>
+            <div style={{ fontSize: "13px", color: "#FF0164", fontWeight: "bold", letterSpacing: "2px", marginBottom: "12px" }}>
+              ANTES DE EMPEZAR
             </div>
+            <h2 style={{ color: "#fff", fontSize: "22px", fontWeight: "bold", marginTop: 0, marginBottom: "8px" }}>
+              ¿A quién le preparamos el análisis?
+            </h2>
+            <p style={{ color: "#888", fontSize: "15px", marginBottom: "32px" }}>
+              Déjanos tus datos y accede al optimizador completo.
+            </p>
+
+            <label style={labelStyle}>Nombre completo *</label>
+            <input
+              type="text"
+              placeholder="Tu nombre completo"
+              value={lead.nombre}
+              onChange={(e) => setLead({ ...lead, nombre: e.target.value })}
+              style={{ ...inputStyle, marginBottom: "16px" }}
+            />
+
+            <label style={labelStyle}>Email *</label>
+            <input
+              type="email"
+              placeholder="tu@email.com"
+              value={lead.email}
+              onChange={(e) => setLead({ ...lead, email: e.target.value })}
+              style={{ ...inputStyle, marginBottom: "16px" }}
+            />
+
+            <label style={labelStyle}>WhatsApp *</label>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
+              <select
+                value={codigoPais}
+                onChange={(e) => setCodigoPais(e.target.value)}
+                style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #333", background: "#1e1e1e", color: "#fff", fontSize: "14px", outline: "none", cursor: "pointer", minWidth: "180px" }}
+              >
+                {PAISES.map((p) => (
+                  <option key={p.codigo} value={p.codigo}>{p.nombre} ({p.codigo})</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                placeholder="300 000 0000"
+                value={lead.whatsapp}
+                onChange={(e) => setLead({ ...lead, whatsapp: e.target.value })}
+                style={{ ...inputStyle, flex: 1 }}
+              />
+            </div>
+
+            <button
+              onClick={handleLead}
+              disabled={enviando || !lead.nombre || !lead.email || !lead.whatsapp}
+              style={{ width: "100%", background: (enviando || !lead.nombre || !lead.email || !lead.whatsapp) ? "#555" : "#FF0164", color: "#fff", border: "none", borderRadius: "10px", padding: "14px", fontSize: "16px", fontWeight: "bold", cursor: "pointer" }}
+            >
+              {enviando ? "Guardando..." : "Acceder al optimizador →"}
+            </button>
+
+            <p style={{ textAlign: "center", color: "#555", fontSize: "13px", marginTop: "16px" }}>
+              Tu información es confidencial. No hacemos spam.
+            </p>
           </div>
+        )}
+
+        {/* ─── PASO 2: Optimizador ─── */}
+        {step === 2 && (
+          <>
+            <div style={{ background: "#141414", borderRadius: "16px", padding: "32px", marginBottom: "24px", border: "1px solid #222" }}>
+              <h2 style={{ color: "#FF0164", fontSize: "16px", fontWeight: "bold", marginTop: 0, marginBottom: "24px" }}>📋 Datos de la campaña</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                {camposMetricas.map((campo) => (
+                  <div key={campo.key}>
+                    <label style={labelStyle}>{campo.label}</label>
+                    <input
+                      type="text"
+                      placeholder={campo.placeholder}
+                      value={form[campo.key] || ""}
+                      onChange={(e) => handleChange(campo.key, e.target.value)}
+                      style={inputStyle}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={handleAnalizar}
+                disabled={cargando}
+                style={{ marginTop: "28px", width: "100%", background: cargando ? "#555" : "#FF0164", color: "#fff", border: "none", borderRadius: "10px", padding: "14px", fontSize: "16px", fontWeight: "bold", cursor: cargando ? "not-allowed" : "pointer" }}
+              >
+                {cargando ? "Analizando campaña..." : "🔍 Analizar campaña"}
+              </button>
+            </div>
+
+            {resultado && (
+              <div style={{ background: "#141414", borderRadius: "16px", padding: "32px", border: "1px solid #222" }}>
+                <h2 style={{ color: "#FF0164", fontSize: "16px", fontWeight: "bold", marginTop: 0, marginBottom: "20px" }}>📊 Diagnóstico y Plan de Optimización</h2>
+                <div className="md-body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultado}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
       </div>
